@@ -1,7 +1,9 @@
 local addonName, addon = ...
 setfenv(1, addon)
 
-local tradeChatFrame = _G.ChatFrame7
+------------------------------------------------------------------------------------------------------------------------
+chatFrames = _G.PrimalCore.chatFrames
+------------------------------------------------------------------------------------------------------------------------
 
 local chatCache
 --local chatCacheTable = _G.setmetatable({}, { __index = function(table, key) table[key] = {}; return table[key] end})
@@ -83,7 +85,7 @@ function addon:setupChat()
     "LocalDefense",
     --"WorldDefense", -- Nobody is ever in this channel... also, wasn't LookingForGroup normally at index 4?
     "LookingForGroup",
-    --"BigfootWorldChannel", -- Can't join this channel. What the hell is this anyway?
+    --"BigfootWorldChannel", -- Can't join this channel.  What the hell is this anyway?
     --"MeetingStone", -- Ditto.
   }
 
@@ -125,8 +127,8 @@ function addon:setupChat()
 
   _G.C_Timer.After(1, function()
     for i = 1, #serverChannels do
-      _G.JoinPermanentChannel(serverChannels[i], nil, tradeChatFrame:GetID())
-      _G.ChatFrame_AddChannel(tradeChatFrame, serverChannels[i])
+      _G.JoinPermanentChannel(serverChannels[i], nil, _G[chatFrames.trade]:GetID())
+      _G.ChatFrame_AddChannel(_G[chatFrames.trade], serverChannels[i])
     end
   end)
 
@@ -136,10 +138,11 @@ function addon:setupChat()
   -- wowprogramming.com/docs/api/EnumerateServerChannels
   ----------------------------------------------------------------------------------------------------------------------
 
+  -- Section in chat-cache.txt looks like this:
   --[[
   CHANNELS
-  laksdjflkj 1 1
-  help 1 5
+  Foo 1 1
+  Bar 1 5
   END
   ]]
   for channelName, channelInfo in _G.pairs(chatCacheTable.CHANNELS) do
@@ -157,6 +160,11 @@ function addon:setupChat()
     _G.ToggleChatColorNamesByClassGroup(classColored == "Y" and true or false, messageGroup)
   end
 
+  local dockedFrames = {}
+
+  -- TODO: FCF_ResetChatWindows()?
+
+  ----------------------------------------------------------------------------------------------------------------------
   for key, info in _G.pairs(chatCacheTable) do
     local chatFrameId = _G.tonumber(_G.string.match(key, "^WINDOW (%d%d?)$"))
     if chatFrameId then
@@ -164,44 +172,38 @@ function addon:setupChat()
       local chatTab   = _G["ChatFrame".. chatFrameId .. "Tab"]
 
       _G.assert(chatFrame and chatTab)
+
       print("configuring ChatFrame" .. chatFrameId .. (info.NAME and (": \"" .. info.NAME .. "\"") or ""))
 
-      -- TODO: FCF_ResetChatWindows()? Clear chat windows?
+      -- Clear chat windows?
 
-      if info.SHOWN == "0" then
-        if info.DOCKED == "0" then
-          _G.FCF_Close(chatFrame)
-        end
-      else -- TODO: check if this chat frame is selected.
-        -- Code equivalent to a small excerpt from FCF_OpenNewWindow().  The other stuff done in that function should
-        -- already be handled when applying other settings.  TODO: there's probably at least an UPDATE_CHAT_WINDOWS or
-        -- UPDATE_FLOATING_CHAT_WINDOWS event as well though so some code to do the same stuff as
-        -- FloatingChatFrame_OnEvent() might be needed.
-        chatFrame:Show()
-        chatTab:Show()
-        _G.SetChatWindowShown(chatFrameId, true) -- wowprogramming.com/docs/api/SetChatWindowShown
+      _G.assert(info.SHOWN and info.DOCKED)
+
+      ------------------------------------------------------------------------------------------------------------------
+      -- Undock all chat frames.  If it should be undocked, this oviously makes sense.  If it should be docked, we still
+      -- undock it so we can later dock all frames in the correct order as FCF_DockFrame() immediately returns if the
+      -- chat frame is already docked.  Chat frames that don't fullfill this condition are closed (which also undocks
+      -- them).
+      if info.SHOWN == "1" or info.DOCKED == "1" then
+        _G.FCF_UnDockFrame(chatFrame)
+      end
+      ------------------------------------------------------------------------------------------------------------------
+
+      if info.NAME then
+        _G.FCF_SetWindowName(chatFrame, info.NAME)
       end
 
-      _G.FCF_SetWindowName(chatFrame, info.NAME) -- This won't break if info.NAME is nil.
-      _G.FCF_SetChatWindowFontSize(nil, chatFrame, _G.tonumber(info.SIZE)) -- Chatter seems to overwrite whatever font
-                                                                           -- size the default UI saves.
+      -- Chatter will override this default font size setting if its "Chat Font" module is enabled.
+      _G.FCF_SetChatWindowFontSize(nil, chatFrame, _G.tonumber(info.SIZE))
 
-      -- stackoverflow.com/a/19269176/1980378
-      local r, g, b, a = _G.string.match(info.COLOR, "([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+)")
-      r, g, b, a = _G.tonumber(r) / 255, _G.tonumber(g) / 255, _G.tonumber(b) / 255, _G.tonumber(a) / 255
-      --[[
-      local function tonumber(...)
-        if (...) ~= nil then
-          return _G.tonumber((...)), tonumber(_G.select(2, ...))
-        else
-          return
-        end
+      do
+        -- stackoverflow.com/a/19269176/1980378
+        local r, g, b, a = _G.string.match(info.COLOR, "([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+)")
+        r, g, b, a = _G.tonumber(r) / 255, _G.tonumber(g) / 255, _G.tonumber(b) / 255, _G.tonumber(a) / 255
+        _G.assert(r and g and b and a)
+        _G.FCF_SetWindowColor(chatFrame, r, g, b)
+        _G.FCF_SetWindowAlpha(chatFrame, a)
       end
-      local r, g, b, a = tonumber(_G.string.match(info.COLOR, "([^ ]+) ([^ ]+) ([^ ]+) ([^ ]+)"))
-      ]]
-      _G.assert(r and g and b and a)
-      _G.FCF_SetWindowColor(chatFrame, r, g, b)
-      _G.FCF_SetWindowAlpha(chatFrame, a)
 
       local locked = _G.tonumber(info.LOCKED)
       _G.FCF_SetLocked(chatFrame, (locked == 1) and true or false) -- wowprogramming.com/docs/api/SetChatWindowLocked
@@ -209,24 +211,20 @@ function addon:setupChat()
       -- It's normally not really possible for docked chat frames (there can only by one dock) to have different
       -- interactable settings.  This doesn't explicitly prevent it.
       _G.FCF_SetUninteractable(chatFrame, info.UNINTERACTABLE == "1")
-      -- Calls wowprogramming.com/docs/api/SetChatWindowUninteractable
+      -- wowprogramming.com/docs/api/SetChatWindowUninteractable
 
-      -- I think the frame will be docked at this position; e.g., if index is 3, its tab will be the third tab.
+      ------------------------------------------------------------------------------------------------------------------
+      -- The frame will be docked at this position; e.g., if index is 3, its tab will be the third tab.
       local index = _G.tonumber(info.DOCKED)
-      if index == 0 then
-        _G.FCF_UnDockFrame(chatFrame)
-      else
-        -- Chat frames that aren't docked count as being selected.  This is in line with Blizzard code (this assignement
-        -- basically is Blizzard code).  On the other hand, all this will do is make FCF_DockFrame() select the frame
-        -- that's being docked and that only really seems to make sense when the frame is docked manually by a user
-        -- dragging it.  Maybe using FCF_GetCurrentChatFrameID() would be better.  Whatever.
-        local selected = not chatFrame.isDocked or chatFrame == _G.FCFDock_GetSelectedWindow(_G.GENERAL_CHAT_DOCK)
-        _G.FCF_DockFrame(chatFrame, index, selected)
+      if index ~= 0 then
+        -- We dock these later in the right order making sure we don't try to, for example, dock a frame at position 3
+        -- when no other frames were docked yet.
+        dockedFrames[index] = chatFrame
       end
-      -- Both call wowprogramming.com/docs/api/SetChatWindowDocked (FCF_DockFrame() indirectly and several times)
+      -- wowprogramming.com/docs/api/SetChatWindowDocked
+      ------------------------------------------------------------------------------------------------------------------
 
-      -- TODO: remember to also apply these settings to Chatter if it's set to handle chat frame positioning
-      -- (synchronizeChatFrames disabled).
+      -- These settings aren't used if Chatter is set to handle chat frame positioning.
       if not chatFrame.isDocked or chatFrame == _G.GENERAL_CHAT_DOCK.primary then
         local chatFrameChanged = false
         if info.POSITION then
@@ -296,17 +294,38 @@ function addon:setupChat()
       -- wowprogramming.com/docs/api_types#chatMsgType (this description seems to be inaccurate, though)
       ------------------------------------------------------------------------------------------------------------------
 
+      -- Section in chat-cache.txt looks like this:
       --[[
       CHANNELS
-      laksdjflkj
-      help
+      LookingForGroup
+      Foo
+      Bar
       END
       ]]
       for channelName, _ in _G.pairs(info.CHANNELS) do
-        -- TODO.
+        _G.ChatFrame_RemoveChannel(chatFrame, channelName)
+        _G.ChatFrame_AddChannel(chatFrame, channelName)
       end
 
-      -- TODO: info.ZONECHANNELS
+      -- TODO: info.ZONECHANNELS? What does the value of it mean?
+
+      --[[
+      _G.ChatFrame_AddChannel(chatFrame, _G.Chat_GetChannelShortcutName(chatTarget))
+      ]]
+
+      if info.SHOWN == "0" then
+        if info.DOCKED == "0" then
+          _G.FCF_Close(chatFrame) -- Calls FCF_UnDockFrame()
+        end
+      else -- TODO: check if this chat frame is selected.
+        -- Code equivalent to a small excerpt from FCF_OpenNewWindow().  The other stuff done in that function should
+        -- already be handled when applying other settings.  TODO: there's probably at least an UPDATE_CHAT_WINDOWS or
+        -- UPDATE_FLOATING_CHAT_WINDOWS event as well though so some code to do the same stuff as
+        -- FloatingChatFrame_OnEvent() might be needed.
+        chatFrame:Show()
+        chatTab:Show()
+        _G.SetChatWindowShown(chatFrameId, true) -- wowprogramming.com/docs/api/SetChatWindowShown
+      end
 
       -- TODO: FCF_SetTabPosition() somewhere?
 
@@ -314,6 +333,16 @@ function addon:setupChat()
       -- response to UPDATE_CHAT_WINDOWS or UPDATE_FLOATING_CHAT_WINDOWS.
     end
   end
+  ----------------------------------------------------------------------------------------------------------------------
+
+  for i = 1, _G.NUM_CHAT_WINDOWS do
+    local chatFrame = dockedFrames[i]
+    if chatFrame then
+      _G.FCF_DockFrame(chatFrame, i, false) -- Don't select the chat frame.
+    end
+  end
+
+  _G[chatFrames.chat .. "Tab"]:Click()
 end
 -- wowprogramming.com/docs/api_categories#chat
 -- wowprogramming.com/utils/xmlbrowser/test/FrameXML/FloatingChatFrame.lua
@@ -443,8 +472,6 @@ LOCKED 1
 UNINTERACTABLE 0
 DOCKED 2
 SHOWN 0
-POSITION BOTTOMLEFT 2.000000 7.000000
-DIMENSIONS 461.000000 197.000000
 
 MESSAGES
 OPENING
@@ -460,6 +487,150 @@ ZONECHANNELS 0
 END
 
 WINDOW 3
+NAME Trade
+SIZE 14
+COLOR 0 0 0 0
+LOCKED 1
+UNINTERACTABLE 0
+DOCKED 3
+SHOWN 0
+
+MESSAGES
+YELL
+END
+
+CHANNELS
+LookingForGroup
+END
+
+ZONECHANNELS 35651587
+
+END
+
+WINDOW 4
+NAME Chat
+SIZE 14
+COLOR 0 0 0 0
+LOCKED 1
+UNINTERACTABLE 0
+DOCKED 4
+SHOWN 1
+
+MESSAGES
+SAY
+EMOTE
+WHISPER
+PARTY
+PARTY_LEADER
+RAID
+RAID_LEADER
+RAID_WARNING
+GUILD
+OFFICER
+BN_WHISPER
+BN_CONVERSATION
+INSTANCE_CHAT
+INSTANCE_CHAT_LEADER
+END
+
+CHANNELS
+END
+
+ZONECHANNELS 0
+
+END
+
+WINDOW 5
+SIZE 14
+COLOR 0 0 0 0
+LOCKED 0
+UNINTERACTABLE 0
+DOCKED 0
+SHOWN 0
+
+MESSAGES
+END
+
+CHANNELS
+END
+
+ZONECHANNELS 0
+
+END
+
+WINDOW 6
+SIZE 14
+COLOR 0 0 0 0
+LOCKED 0
+UNINTERACTABLE 0
+DOCKED 0
+SHOWN 0
+
+MESSAGES
+END
+
+CHANNELS
+END
+
+ZONECHANNELS 0
+
+END
+
+WINDOW 7
+SIZE 14
+COLOR 0 0 0 0
+LOCKED 1
+UNINTERACTABLE 0
+DOCKED 0
+SHOWN 0
+
+MESSAGES
+END
+
+CHANNELS
+END
+
+ZONECHANNELS 0
+
+END
+
+WINDOW 8
+SIZE 14
+COLOR 0 0 0 0
+LOCKED 0
+UNINTERACTABLE 0
+DOCKED 0
+SHOWN 0
+
+MESSAGES
+END
+
+CHANNELS
+END
+
+ZONECHANNELS 0
+
+END
+
+WINDOW 9
+SIZE 14
+COLOR 0 0 0 0
+LOCKED 1
+UNINTERACTABLE 0
+DOCKED 0
+SHOWN 0
+
+MESSAGES
+END
+
+CHANNELS
+END
+
+ZONECHANNELS 0
+
+END
+
+WINDOW 10
 NAME Sink
 SIZE 14
 COLOR 0 0 0 0
@@ -495,157 +666,10 @@ CURRENCY
 PET_BATTLE_COMBAT_LOG
 PET_BATTLE_INFO
 OPENING
-PET_INFO
 COMBAT_XP_GAIN
 COMBAT_HONOR_GAIN
 COMBAT_MISC_INFO
 COMBAT_GUILD_XP_GAIN
-END
-
-CHANNELS
-END
-
-ZONECHANNELS 0
-
-END
-
-WINDOW 4
-SIZE 14
-COLOR 0 0 0 0
-LOCKED 0
-UNINTERACTABLE 0
-DOCKED 0
-SHOWN 0
-
-MESSAGES
-END
-
-CHANNELS
-END
-
-ZONECHANNELS 0
-
-END
-
-WINDOW 5
-SIZE 14
-COLOR 0 0 0 0
-LOCKED 0
-UNINTERACTABLE 0
-DOCKED 0
-SHOWN 0
-
-MESSAGES
-END
-
-CHANNELS
-END
-
-ZONECHANNELS 0
-
-END
-
-WINDOW 6
-NAME Chat
-SIZE 14
-COLOR 0 0 0 0
-LOCKED 1
-UNINTERACTABLE 0
-DOCKED 5
-SHOWN 1
-POSITION BOTTOMLEFT 2.000000 7.000000
-DIMENSIONS 461.000000 197.000000
-
-MESSAGES
-SAY
-EMOTE
-WHISPER
-PARTY
-PARTY_LEADER
-RAID
-RAID_LEADER
-RAID_WARNING
-GUILD
-OFFICER
-BN_WHISPER
-BN_CONVERSATION
-INSTANCE_CHAT
-INSTANCE_CHAT_LEADER
-END
-
-CHANNELS
-END
-
-ZONECHANNELS 0
-
-END
-
-WINDOW 7
-NAME Trade
-SIZE 14
-COLOR 0 0 0 0
-LOCKED 1
-UNINTERACTABLE 0
-DOCKED 4
-SHOWN 0
-POSITION BOTTOMLEFT 2.000000 7.000000
-DIMENSIONS 461.000000 197.000000
-
-MESSAGES
-YELL
-END
-
-CHANNELS
-LookingForGroup
-END
-
-ZONECHANNELS 35651587
-
-END
-
-WINDOW 8
-SIZE 14
-COLOR 0 0 0 0
-LOCKED 0
-UNINTERACTABLE 0
-DOCKED 0
-SHOWN 0
-
-MESSAGES
-END
-
-CHANNELS
-END
-
-ZONECHANNELS 0
-
-END
-
-WINDOW 9
-SIZE 14
-COLOR 0 0 0 0
-LOCKED 1
-UNINTERACTABLE 0
-DOCKED 0
-SHOWN 0
-MESSAGES
-END
-
-CHANNELS
-END
-
-ZONECHANNELS 0
-
-END
-
-WINDOW 10
-SIZE 14
-COLOR 0 0 0 0
-LOCKED 1
-UNINTERACTABLE 0
-DOCKED 0
-SHOWN 0
-MESSAGES
 END
 
 CHANNELS

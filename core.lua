@@ -15,7 +15,6 @@ setfenv(1, addon)
 debug = true
 
 if debug then
-  --print = _G.print
   print = function(...)
     _G.print("|cffff7d0a" .. addonName .. "|r:", ...)
   end
