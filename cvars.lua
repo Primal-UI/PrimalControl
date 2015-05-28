@@ -147,10 +147,15 @@ cVars = {
   UnitNameEnemyTotemName = "1",
   UnitNameFriendlyPetName = "0",
   UnitNameGuildTitle = "0",
+  CombatDamageStyle = "1", -- "Base Mode" item from the display mode dropdown ("Floating Combat Text" panel).  Default
+                           -- value.  The description says that the other value has extremely poor performance.
   CombatHealingAbsorbSelf = "0",
   enableCombatText = "0",
   fctReactives = "0",
   fctLowManaHealth = "0",
+  fctSpellMechanics = "0", -- "Effects" checkbox in the "Floating Combat Text" panel.  Default value.  "Snared" spam is
+                           -- annoying.
+  fctSpellMechanicsOther = "0", -- "Show for other players' targets" checkbox.  Default value.
   playerStatusText = "1",
   targetStatusText = "1",
   statusTextDisplay = "PERCENT",
@@ -171,7 +176,7 @@ cVars = {
   -- Character-specific CVars; these appear in WTF/Account/<AccountName>/<RealmName>/CharacterName>/config-cache.wtf ---
   autoLootDefault = "1",
   autoSelfCast = "0",
-  stopAutoAttackOnTargetChange = "1",
+  stopAutoAttackOnTargetChange = "0",
   displaySpellActivationOverlays = "0",
   lossOfControl = "0",
   lossOfControlFull = "0",

@@ -12,73 +12,22 @@ addon._G = _G
 _G[addonName] = addon
 setfenv(1, addon)
 
-debug = true
-
-if debug then
-  print = function(...)
-    _G.print("|cffff7d0a" .. addonName .. "|r:", ...)
-  end
-else
-  print = function() end
+----[[
+print = function(...)
+  _G.print("|cffff7d0a" .. addonName .. "|r:", ...)
 end
+--]]
 
 local AceGUI = _G.LibStub("AceGUI-3.0")
 
---[[--------------------------------------------------------------------------------------------------------------------
-wowprogramming.com/docs/api_categories#cvar
---]]--------------------------------------------------------------------------------------------------------------------
-
-primalAddons = {
-
-}
-
--- Third-party addons that we will enable and (if necessary) configure by setting SavedVariables.
-addons = {
-  "Bartender4",
-  "Bugger",
-  "!BugGrabber",
-  "Chatter",
-  "DamnUnitSounds",
-  "DuelCountdown",
-  "MapCoords",
-  "MikScrollingBattleText",
-  "MinimapRange",
-  "MSBTOptions",
-  "OmniBar",
-  --"OmniBar_Options",
-  "OmniCC",
-  --"OmniCC_Config",
-  "OPie",
-  "SafeQueue",
-  "SellJunk",
-  "TellMeWhen",
-  --"TellMeWhen_Options",
-  "TidyPlates",
-  "TidyPlatesHub",
-  "TidyPlatesWidgets",
-  "TidyPlates_Neon",
-  "WeakAuras",
-  --"WeakAurasModelPaths",
-  --"WeakAurasOptions",
-  --"WeakAurasTutorials",
-}
-
-local eventHandler = _G.CreateFrame("Frame")
-eventHandler:SetScript("OnEvent", function(_, event, ...)
-  return addon[event](addon, ...)
-end)
-
-function addon:configureAddons()
-
-end
-
-panel = nil
+local onGroupSelected, drawMainPanel, drawAddonPanel
+local tabs = {{ value = "main", text = "Main" }, { value = "addons", text = "AddOns"}}
 
 function addon:openPanel()
   if panel then return end
 
-  -- This is apparently really not the way to close the GameMenuFrame. All the panels that won't open while it's shown
-  -- still won't open after calling this.
+  -- This is apparently not the way to close the GameMenuFrame.  All the panels that won't open while it's shown still
+  -- won't open after calling this.
   --_G.GameMenuFrame:Hide()
 
   -- See ToggleGameMenu() in wowprogramming.com/utils/xmlbrowser/test/FrameXML/UIParent.lua.
@@ -90,10 +39,42 @@ function addon:openPanel()
   panel = AceGUI:Create("Frame")
   panel:SetTitle("|cffff7d0aPrimalUI|r Control")
   panel:SetCallback("OnClose", function(self) AceGUI:Release(self); panel = nil end)
-  panel:SetLayout("Flow")
+  panel:SetLayout("Fill")
   panel:SetWidth(448)
 
-  ----------------------------------------------------------------------------------------------------------------------
+  local tabGroup = AceGUI:Create("TabGroup")
+  tabGroup:SetTabs(tabs)
+  tabGroup:SetLayout("Fill")
+  tabGroup:SetCallback("OnGroupSelected", onGroupSelected)
+  tabGroup:SelectTab("main")
+
+  --tabGroup:SetFullWidth(true)
+  --tabGroup:SetFullHeight(true)
+
+  panel:AddChild(tabGroup)
+end
+
+function onGroupSelected(container, event, group)
+  container:ReleaseChildren()
+  if group == "main" then
+    drawMainPanel(container)
+  elseif group == "addons" then
+    drawAddonPanel(container)
+  end
+end
+
+function drawMainPanel(container)
+  container:SetLayout("Fill")
+  local panel = AceGUI:Create("ScrollFrame")
+  panel:SetLayout("Flow")
+  container:AddChild(panel)
+
+  local heading = AceGUI:Create("Heading")
+  heading:SetText("Main Panel")
+  heading:SetFullWidth(true)
+  panel:AddChild(heading)
+
+  ----[[----------------------------------------------------------------------------------------------------------------
   local label = AceGUI:Create("Label")
   label:SetFullWidth(true)
   label:SetText("Set some console variables to my preferred values. This is recommended but changes a lot of default" ..
@@ -102,21 +83,21 @@ function addon:openPanel()
   panel:AddChild(label)
 
   local spacer = AceGUI:Create("Label")
-  spacer:SetRelativeWidth(0.3)
+  spacer:SetRelativeWidth(.3)
   panel:AddChild(spacer)
 
   local cVarButton = AceGUI:Create("Button")
   cVarButton:SetText("Set CVars")
-  cVarButton:SetRelativeWidth(0.4)
+  cVarButton:SetRelativeWidth(.4)
   cVarButton:SetCallback("OnClick", function(self)
     addon:setCVars()
   end)
   panel:AddChild(cVarButton)
 
   local spacer = AceGUI:Create("Label")
-  spacer:SetRelativeWidth(0.3)
+  spacer:SetRelativeWidth(.3)
   panel:AddChild(spacer)
-  ----------------------------------------------------------------------------------------------------------------------
+  --]]------------------------------------------------------------------------------------------------------------------
 
   ----------------------------------------------------------------------------------------------------------------------
   local heading = AceGUI:Create("Heading")
@@ -130,23 +111,23 @@ function addon:openPanel()
   panel:AddChild(label)
 
   local spacer = AceGUI:Create("Label")
-  spacer:SetRelativeWidth(0.3)
+  spacer:SetRelativeWidth(.3)
   panel:AddChild(spacer)
 
   local chatButton = AceGUI:Create("Button")
   chatButton:SetText("Setup Chat")
-  chatButton:SetRelativeWidth(0.4)
+  chatButton:SetRelativeWidth(.4)
   chatButton:SetCallback("OnClick", function(self)
     addon:setupChat()
   end)
   panel:AddChild(chatButton)
 
   local spacer = AceGUI:Create("Label")
-  spacer:SetRelativeWidth(0.3)
+  spacer:SetRelativeWidth(.3)
   panel:AddChild(spacer)
-  ----------------------------------------------------------------------------------------------------------------------
+  --]]------------------------------------------------------------------------------------------------------------------
 
-  ----------------------------------------------------------------------------------------------------------------------
+  ----[[----------------------------------------------------------------------------------------------------------------
   local heading = AceGUI:Create("Heading")
   heading:SetFullWidth(true)
   panel:AddChild(heading)
@@ -158,26 +139,25 @@ function addon:openPanel()
   panel:AddChild(label)
 
   local spacer = AceGUI:Create("Label")
-  spacer:SetRelativeWidth(0.3)
+  spacer:SetRelativeWidth(.3)
   panel:AddChild(spacer)
 
   local savedVariablesButton = AceGUI:Create("Button")
   savedVariablesButton:SetText("Setup AddOns")
-  savedVariablesButton:SetRelativeWidth(0.4)
+  savedVariablesButton:SetRelativeWidth(.4)
   savedVariablesButton:SetCallback("OnClick", function(self)
-    addon:setupChat()
+    addon:configureAllAddons()
   end)
   panel:AddChild(savedVariablesButton)
 
   local spacer = AceGUI:Create("Label")
-  spacer:SetRelativeWidth(0.3)
+  spacer:SetRelativeWidth(.3)
   panel:AddChild(spacer)
-  ----------------------------------------------------------------------------------------------------------------------
+  --]]------------------------------------------------------------------------------------------------------------------
 
   ----------------------------------------------------------------------------------------------------------------------
   local heading = AceGUI:Create("Heading")
   heading:SetFullWidth(true)
-  --heading:SetText("Reload UI")
   panel:AddChild(heading)
 
   local label = AceGUI:Create("Label")
@@ -187,29 +167,102 @@ function addon:openPanel()
   panel:AddChild(label)
 
   local spacer = AceGUI:Create("Label")
-  spacer:SetRelativeWidth(0.3)
+  spacer:SetRelativeWidth(.3)
   panel:AddChild(spacer)
 
   local reloadButton = AceGUI:Create("Button")
   reloadButton:SetText("Reload UI")
-  reloadButton:SetRelativeWidth(0.4)
+  reloadButton:SetRelativeWidth(.4)
   reloadButton:SetCallback("OnClick", function(self)
     _G.ReloadUI()
   end)
   panel:AddChild(reloadButton)
 
   local spacer = AceGUI:Create("Label")
-  spacer:SetRelativeWidth(0.3)
+  spacer:SetRelativeWidth(.3)
   panel:AddChild(spacer)
   ----------------------------------------------------------------------------------------------------------------------
 end
+
+function drawAddonPanel(container)
+  container:SetLayout("Fill")
+  local panel = AceGUI:Create("ScrollFrame")
+  panel:SetLayout("Flow")
+  container:AddChild(panel)
+
+  local heading = AceGUI:Create("Heading")
+  heading:SetText("AddOn Panel")
+  heading:SetFullWidth(true)
+  panel:AddChild(heading)
+
+  local label = AceGUI:Create("Label")
+  label:SetFullWidth(true)
+  label:SetText("You can cherry-pick AddOns that you want to setup.")
+  label:SetFontObject(_G.GameFontNormalLeft)
+  panel:AddChild(label)
+
+  local dropdown = AceGUI:Create("Dropdown")
+  dropdown:SetMultiselect(true)
+  dropdown:SetList(addons)
+  for i = 1, #addons do
+    if setupFunctions[addons[i]] then
+      dropdown:SetItemValue(i, true)
+    else
+      dropdown:SetItemDisabled(i, true)
+    end
+  end
+  dropdown:SetRelativeWidth(.6)
+  dropdown:SetCallback("OnValueChanged", function(self, key, checked)
+    --[[...]]
+  end)
+  panel:AddChild(dropdown)
+
+  local button = AceGUI:Create("Button")
+  button:SetText("Setup AddOns")
+  button:SetRelativeWidth(.4)
+  button:SetCallback("OnClick", function(self)
+    for i = 1, #addons do
+      -- ...
+    end
+  end)
+  panel:AddChild(button)
+
+  --[=[
+  for i = 1, #addons do
+    if setupFunctions[addons[i]] then
+      local button = AceGUI:Create("Button")
+      button:SetText("Setup " .. addons[i])
+      button:SetCallback("OnClick", function(self)
+        print("Configuring " .. addons[i])
+        setupFunctions[addons[i]]()
+      end)
+      panel:AddChild(button)
+    end
+  end
+  ]=]
+end
+
+onPlayerLogout = {}
+
+local eventHandler = _G.CreateFrame("Frame")
+eventHandler:SetScript("OnEvent", function(_, event, ...)
+  return addon[event](addon, ...)
+end)
 
 function addon:ADDON_LOADED(name)
   if name ~= addonName then return end
 
   eventHandler:UnregisterEvent("ADDON_LOADED")
 
+  eventHandler:RegisterEvent("PLAYER_LOGOUT")
+
   self.ADDON_LOADED = nil
+end
+
+function addon:PLAYER_LOGOUT()
+  for i = 1, #onPlayerLogout do
+    onPlayerLogout[i]()
+  end
 end
 
 eventHandler:RegisterEvent("ADDON_LOADED")

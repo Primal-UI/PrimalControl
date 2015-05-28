@@ -2,7 +2,7 @@
 ## Title: |cffff7d0aPrimalControl|r
 ## Notes: Used to setup PrimalUI or reset specific components.
 ## Dependencies: PrimalCore
-## OptionalDeps:
+## OptionalDeps: SexyMap
 ## LoadOnDemand: 1
 ## Author: meribold
 ## Version: 0.1
@@ -10,7 +10,8 @@
 embeds.xml
 
 core.lua
+
 all_cvars.lua
 cvars.lua
 chat.lua
-SavedVariablesPerCharacter/Blizzard_BattlefieldMinimap.lua
+saved_variables.lua
