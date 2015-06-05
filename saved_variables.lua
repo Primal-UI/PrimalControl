@@ -6,10 +6,11 @@ addons = {
   "!BugGrabber",
   "Bartender4",
   "Blizzard_BattlefieldMinimap",
+  "Blizzard_CompactRaidFrames",
   "Bugger",
   "Chatter",
   --"DamnUnitSounds",
-  --"DuelCountdown",
+  "DuelCountdown",
   "MapCoords",
   "MikScrollingBattleText",
   "MinimapRange",
@@ -19,6 +20,13 @@ addons = {
   "OmniCC",
   --"OmniCC_Config",
   "OPie",
+  "PrimalMedia",
+  "PrimalUnitFrames",
+  "PrimalGcd",
+  "PrimalAuras",
+  "PrimalComboPoints",
+  --"PrimalCooldowns",
+  "PrimalExtra",
   "SafeQueue",
   "SellJunk",
   "SexyMap",
@@ -27,30 +35,64 @@ addons = {
   "TidyPlates",
   "TidyPlatesHub",
   "TidyPlatesWidgets",
-  --"TidyPlates_Neon", -- Doesn't have SavedVariables.
+  "TidyPlates_Neon", -- Doesn't have SavedVariables.
   "WeakAuras",
   --"WeakAurasModelPaths",
   --"WeakAurasOptions",
   --"WeakAurasTutorials",
 }
 
+function enableAddon(addon)
+  --local loadable, reason = _G.select(4, _G.GetAddOnInfo(addon))
+  --local enabled = loadable or reason ~= "DISABLED"
+  local enabled = _G.GetAddOnEnableState(_G.UnitName("player"), addon) > 0
+  if not enabled then
+    _G.EnableAddOn(addon)
+    enabled = _G.GetAddOnEnableState(_G.UnitName("player"), addon) > 0
+    if enabled then
+      print("Enabled \"" .. addon .. '"')
+      return true
+    else
+      print("Can't enable \"" .. addon .. '"')
+      return false
+    end
+  else
+    return true
+  end
+end
+-- http://wow.gamepedia.com/API_GetAddOnInfo
+-- http://www.wowinterface.com/forums/showpost.php?p=296300&postcount=26
+-- http://wowprogramming.com/utils/xmlbrowser/test/SharedXML/AddonList.lua
+
+function enableAllAddons()
+  for i = 1, #addons do
+    enableAddon(addons[i])
+  end
+end
+
 setupFunctions = {}
 
-function addon.configureAddon(addon)
-  local loaded, reason = _G.IsAddOnLoaded(addon)
+function configureAddon(addon)
+  local enabled = _G.GetAddOnEnableState(_G.UnitName("player"), addon) > 0
+  if not enabled then
+    enabled = enableAddon(addon)
+    if not enabled then
+      return
+    end
+  end
 
+  local loaded, reason = _G.IsAddOnLoaded(addon)
   if not loaded then
-    print("Trying to load \"" .. addon .. '"')
-    loaded, reason = _G.LoadAddOn(addon)
-    if not loaded and reason == "DISABLED" then
-      print("Enabling \"" .. addon .. '"')
-      _G.EnableAddOn(addon)
-      -- We could still call LoadAddOn() even when the addon isn't load-on-demand and this doesn't usually seem to
-      -- report that loading failed.  IsAddOnLoadOnDemand() also returns true.  I'm not sure whether or not this is a
-      -- good idea.
-      if _G.IsAddOnLoadOnDemand(addon) then
-        loaded, reason = _G.LoadAddOn(addon)
+    -- We could still call LoadAddOn() even when the addon isn't load-on-demand and this doesn't usually seem to report
+    -- that loading failed.  IsAddOnLoadOnDemand() also returns true.  I'm not sure whether or not this is a good idea.
+    if _G.IsAddOnLoadOnDemand(addon) then
+      loaded, reason = _G.LoadAddOn(addon)
+      if loaded then
+        print("Loaded \"" .. addon .. '"')
       end
+    else
+      print("Not trying to load \"" .. addon .. "\": not loadable on demand")
+      return false
     end
   end
 
@@ -60,17 +102,18 @@ function addon.configureAddon(addon)
       setupFunctions[addon]()
     end
   else
-    print("Couldn't load \"" .. addon .. "\": " .. reason)
+    print("Can't load \"" .. addon .. "\". Reason: " .. _G["ADDON_" .. reason])
   end
 end
 
-function addon.configureAllAddons()
+function configureAllAddons()
   for i = 1, #addons do
     configureAddon(addons[i])
   end
-  print("Some AddOn settings aren't applied until reloading the UI.")
+  --print("Most AddOn settings aren't applied until reloading the UI.")
 end
 
+-- FIXME.  When unlocking the map again after running this function, running it again now will not lock it.
 setupFunctions["Blizzard_BattlefieldMinimap"] = function()
   _G.assert(_G.IsAddOnLoaded("Blizzard_BattlefieldMinimap"))
 
@@ -82,6 +125,58 @@ setupFunctions["Blizzard_BattlefieldMinimap"] = function()
   -- event, so that's a bit hacky as well...
   _G.BattlefieldMinimapTab:SetPoint("CENTER", "UIParent", "BOTTOMLEFT", _G.BattlefieldMinimapOptions.position.x,
     _G.BattlefieldMinimapOptions.position.y)
+end
+
+setupFunctions["Blizzard_CompactRaidFrames"] = function() -- TODO: create a new profile.
+  _G.SetCVar("useCompactPartyFrames", false)
+
+  --local profile = _G.GetActiveRaidProfile()
+  local profile = _G.CompactUnitFrameProfiles.selectedProfile
+
+  _G.SetRaidProfileOption(profile, "keepGroupsTogether", false)
+  _G.SetRaidProfileOption(profile, "horizontalGroups", false)
+  _G.SetRaidProfileOption(profile, "sortBy", "group")
+  _G.SetRaidProfileOption(profile, "displayHealPrediction", true)
+  _G.SetRaidProfileOption(profile, "displayPowerBar", false)
+  _G.SetRaidProfileOption(profile, "displayAggroHighlight", false)
+  _G.SetRaidProfileOption(profile, "useClassColors", true)
+  _G.SetRaidProfileOption(profile, "displayPets", false)
+  _G.SetRaidProfileOption(profile, "displayMainTankAndAssist", false)
+  _G.SetRaidProfileOption(profile, "displayBorder", false)
+  _G.SetRaidProfileOption(profile, "displayNonBossDebuffs", true)
+  _G.SetRaidProfileOption(profile, "displayOnlyDispellableDebuffs", true)
+  _G.SetRaidProfileOption(profile, "healthText", "none")
+  _G.SetRaidProfileOption(profile, "frameHeight", 36)
+  _G.SetRaidProfileOption(profile, "frameWidth", 72) -- 104
+  _G.SetRaidProfileOption(profile, "autoActivate2Players", false)
+  _G.SetRaidProfileOption(profile, "autoActivate3Players", false)
+  _G.SetRaidProfileOption(profile, "autoActivate5Players", false)
+  _G.SetRaidProfileOption(profile, "autoActivate10Players", false)
+  _G.SetRaidProfileOption(profile, "autoActivate15Players", false)
+  _G.SetRaidProfileOption(profile, "autoActivate25Players", false)
+  _G.SetRaidProfileOption(profile, "autoActivate40Players", false)
+  _G.SetRaidProfileOption(profile, "autoActivateSpec1", false)
+  _G.SetRaidProfileOption(profile, "autoActivateSpec2", false)
+  _G.SetRaidProfileOption(profile, "autoActivatePvP", false)
+  _G.SetRaidProfileOption(profile, "autoActivatePvE", false)
+
+  -- wowprogramming.com/utils/xmlbrowser/test/AddOns/Blizzard_CompactRaidFrames/Blizzard_CompactRaidFrameManager.xml
+  -- wowprogramming.com/utils/xmlbrowser/test/AddOns/Blizzard_CompactRaidFrames/Blizzard_CompactRaidFrameManager.lua
+  _G.SetRaidProfileOption(profile, "locked", true)
+  _G.SetRaidProfileOption(profile, "shown", true)
+
+  _G.CompactUnitFrameProfiles_ApplyCurrentSettings()
+  --_G.CompactUnitFrameProfiles_UpdateCurrentPanel() -- Pretty unnecessary.
+
+  _G.CompactUnitFrameProfiles_SaveChanges(_G.CompactUnitFrameProfiles)
+
+  _G.CompactRaidFrameManagerContainerResizeFrame:ClearAllPoints()
+  _G.CompactRaidFrameManagerContainerResizeFrame:SetPoint("TOPLEFT", nil, "TOPLEFT", 463 , -650)
+  _G.CompactRaidFrameManager_ResizeFrame_SavePosition(_G.CompactRaidFrameManager)
+
+  -- wowprogramming.com/utils/xmlbrowser/test/AddOns/Blizzard_CUFProfiles/Blizzard_CompactUnitFrameProfiles.xml
+  -- wowprogramming.com/utils/xmlbrowser/test/AddOns/Blizzard_CUFProfiles/Blizzard_CompactUnitFrameProfiles.lua
+  -- wowprogramming.com/docs/api_categories#raid
 end
 
 setupFunctions["OmniCC"] = function()

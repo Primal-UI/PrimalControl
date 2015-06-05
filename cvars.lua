@@ -53,8 +53,8 @@ cVars = {
   -- "View Distance" drop down -----------------------------------------------------------------------------------------
   farclip = "600", -- "Fair" preset
   wmoLodDist = "200", -- Don't know what this does. Using "Low" preset
-  terrainLodDist = "200", -- 0 disables it. Terrain further than terrainLodDist looks fine when terrainTextureLod is 0.
-                          -- 200 seems to be minumum.
+  terrainLodDist = "0", -- 0 disables it.  Terrain further than terrainLodDist looks fine when terrainTextureLod is 0,
+                        -- but it looks pretty bad when the textures change.  200 seems to be the minumum.
   terrainTextureLod = 0, -- 1 makes terrain further than terrainLodDist look REALLY bad; default is 0.
   ----------------------------------------------------------------------------------------------------------------------
   -- "Ground Clutter" drop down ----------------------------------------------------------------------------------------

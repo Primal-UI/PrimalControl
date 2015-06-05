@@ -5,7 +5,9 @@
 -- The main advantage this addon provides is an automated way to setup PrimalUI while not having to replace any contents
 -- of the WTF directory, as well as an easy way to reset aspects of the UI and reapply default addon settings.
 --
--- TODO: Populate action bars? Load macros? Add the ability to reset individual addons specifically.
+---- TODO --------------------------------------------------------------------------------------------------------------
+-- Populate action bars? Load macros? Add the ability to reset individual addons specifically.
+-- Redesign the panel for loading only some addon settings.
 
 local addonName, addon = ...
 addon._G = _G
@@ -74,11 +76,11 @@ function drawMainPanel(container)
   heading:SetFullWidth(true)
   panel:AddChild(heading)
 
-  ----[[----------------------------------------------------------------------------------------------------------------
+  --[-[-----------------------------------------------------------------------------------------------------------------
   local label = AceGUI:Create("Label")
   label:SetFullWidth(true)
-  label:SetText("Set some console variables to my preferred values. This is recommended but changes a lot of default" ..
-    " UI settings (including graphics quality). You might want to revisit the default UI options after doing this.")
+  label:SetText("1. Set some console variables to my preferred values. This changes a lot of default UI settings " ..
+    "(including graphics quality). You might want to revisit the default UI options after doing this. Recommended.")
   label:SetFontObject(_G.GameFontNormalLeft)
   panel:AddChild(label)
 
@@ -99,14 +101,14 @@ function drawMainPanel(container)
   panel:AddChild(spacer)
   --]]------------------------------------------------------------------------------------------------------------------
 
-  ----------------------------------------------------------------------------------------------------------------------
+  --[-[-----------------------------------------------------------------------------------------------------------------
   local heading = AceGUI:Create("Heading")
   heading:SetFullWidth(true)
   panel:AddChild(heading)
 
   local label = AceGUI:Create("Label")
   label:SetFullWidth(true)
-  label:SetText("Configure the chat windows. Recommended.")
+  label:SetText("2. Configure the chat windows.")
   label:SetFontObject(_G.GameFontNormalLeft)
   panel:AddChild(label)
 
@@ -127,14 +129,40 @@ function drawMainPanel(container)
   panel:AddChild(spacer)
   --]]------------------------------------------------------------------------------------------------------------------
 
-  ----[[----------------------------------------------------------------------------------------------------------------
+  --[-[-----------------------------------------------------------------------------------------------------------------
   local heading = AceGUI:Create("Heading")
   heading:SetFullWidth(true)
   panel:AddChild(heading)
 
   local label = AceGUI:Create("Label")
   label:SetFullWidth(true)
-  label:SetText("This will load the included SavedVariables for all AddOns that are part of PrimalUI.")
+  label:SetText("3. Enable all AddOns that are part of PrimalUI. Most of them won't be loaded until reloading the UI.")
+  label:SetFontObject(_G.GameFontNormalLeft)
+  panel:AddChild(label)
+
+  local spacer = AceGUI:Create("Label")
+  spacer:SetRelativeWidth(.3)
+  panel:AddChild(spacer)
+
+  local savedVariablesButton = AceGUI:Create("Button")
+  savedVariablesButton:SetText("Enable AddOns")
+  savedVariablesButton:SetRelativeWidth(.4)
+  savedVariablesButton:SetCallback("OnClick", enableAllAddons)
+  panel:AddChild(savedVariablesButton)
+
+  local spacer = AceGUI:Create("Label")
+  spacer:SetRelativeWidth(.3)
+  panel:AddChild(spacer)
+  --]]------------------------------------------------------------------------------------------------------------------
+
+  --[-[-----------------------------------------------------------------------------------------------------------------
+  local heading = AceGUI:Create("Heading")
+  heading:SetFullWidth(true)
+  panel:AddChild(heading)
+
+  local label = AceGUI:Create("Label")
+  label:SetFullWidth(true)
+  label:SetText("4. Load the included settings for all loaded AddOns that are part of PrimalUI.")
   label:SetFontObject(_G.GameFontNormalLeft)
   panel:AddChild(label)
 
@@ -145,9 +173,7 @@ function drawMainPanel(container)
   local savedVariablesButton = AceGUI:Create("Button")
   savedVariablesButton:SetText("Setup AddOns")
   savedVariablesButton:SetRelativeWidth(.4)
-  savedVariablesButton:SetCallback("OnClick", function(self)
-    addon:configureAllAddons()
-  end)
+  savedVariablesButton:SetCallback("OnClick", configureAllAddons)
   panel:AddChild(savedVariablesButton)
 
   local spacer = AceGUI:Create("Label")
@@ -155,14 +181,14 @@ function drawMainPanel(container)
   panel:AddChild(spacer)
   --]]------------------------------------------------------------------------------------------------------------------
 
-  ----------------------------------------------------------------------------------------------------------------------
+  --[-[-----------------------------------------------------------------------------------------------------------------
   local heading = AceGUI:Create("Heading")
   heading:SetFullWidth(true)
   panel:AddChild(heading)
 
   local label = AceGUI:Create("Label")
   label:SetFullWidth(true)
-  label:SetText("Some changes won't take effect until reloading the UI.")
+  label:SetText("Most changes won't take effect until reloading the UI.")
   label:SetFontObject(_G.GameFontNormalLeft)
   panel:AddChild(label)
 
@@ -197,10 +223,13 @@ function drawAddonPanel(container)
 
   local label = AceGUI:Create("Label")
   label:SetFullWidth(true)
-  label:SetText("You can cherry-pick AddOns that you want to setup.")
+  label:SetText("You can cherry-pick AddOns that you want to setup or reset. Clicking one of these buttons will " ..
+                "load the default configuration for that AddOn. You typically have to reload the UI for the new " ..
+                "settings to take effect.")
   label:SetFontObject(_G.GameFontNormalLeft)
   panel:AddChild(label)
 
+  --[=[
   local dropdown = AceGUI:Create("Dropdown")
   dropdown:SetMultiselect(true)
   dropdown:SetList(addons)
@@ -226,20 +255,19 @@ function drawAddonPanel(container)
     end
   end)
   panel:AddChild(button)
+  --]=]
 
-  --[=[
   for i = 1, #addons do
     if setupFunctions[addons[i]] then
       local button = AceGUI:Create("Button")
-      button:SetText("Setup " .. addons[i])
+      button:SetText(addons[i])
+      button:SetRelativeWidth(.5)
       button:SetCallback("OnClick", function(self)
-        print("Configuring " .. addons[i])
-        setupFunctions[addons[i]]()
+        configureAddon(addons[i])
       end)
       panel:AddChild(button)
     end
   end
-  ]=]
 end
 
 onPlayerLogout = {}
