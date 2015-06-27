@@ -1,4 +1,4 @@
-## Interface: 60100
+## Interface: 60200
 ## Title: |cffff7d0aPrimalControl|r
 ## Notes: Used to setup PrimalUI or reset specific components.
 ## Dependencies: PrimalCore

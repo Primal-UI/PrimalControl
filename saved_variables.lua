@@ -6,7 +6,9 @@ addons = {
   "!BugGrabber",
   "Bartender4",
   "Blizzard_BattlefieldMinimap",
-  "Blizzard_CompactRaidFrames",
+  --"Blizzard_CompactRaidFrames", -- Doesn't have saved variables.
+  "Blizzard_CUFProfiles", -- Doesn't have SavedVariables but there is the per-character CUFProfiles.txt file.
+  --"Blizzard_RaidUI", -- Has (character-specific) saved variables but we really don't care.
   "Bugger",
   "Chatter",
   --"DamnUnitSounds",
@@ -14,9 +16,9 @@ addons = {
   "MapCoords",
   "MikScrollingBattleText",
   "MinimapRange",
-  --"MSBTOptions",
+  "MSBTOptions",
   "OmniBar",
-  --"OmniBar_Options",
+  "OmniBar_Options",
   "OmniCC",
   --"OmniCC_Config",
   "OPie",
@@ -31,14 +33,14 @@ addons = {
   "SellJunk",
   "SexyMap",
   "TellMeWhen",
-  --"TellMeWhen_Options",
+  "TellMeWhen_Options",
   "TidyPlates",
   "TidyPlatesHub",
   "TidyPlatesWidgets",
-  "TidyPlates_Neon", -- Doesn't have SavedVariables.
+  "TidyPlates_Neon", -- Doesn't have saved variables.
   "WeakAuras",
   --"WeakAurasModelPaths",
-  --"WeakAurasOptions",
+  "WeakAurasOptions",
   --"WeakAurasTutorials",
 }
 
@@ -127,8 +129,11 @@ setupFunctions["Blizzard_BattlefieldMinimap"] = function()
     _G.BattlefieldMinimapOptions.position.y)
 end
 
-setupFunctions["Blizzard_CompactRaidFrames"] = function() -- TODO: create a new profile.
+setupFunctions["Blizzard_CUFProfiles"] = function()
   _G.SetCVar("useCompactPartyFrames", false)
+
+  -- Delete all profiles and create one new profile.
+  _G.CompactUnitFrameProfiles_ResetToDefaults()
 
   --local profile = _G.GetActiveRaidProfile()
   local profile = _G.CompactUnitFrameProfiles.selectedProfile
@@ -170,14 +175,28 @@ setupFunctions["Blizzard_CompactRaidFrames"] = function() -- TODO: create a new 
 
   _G.CompactUnitFrameProfiles_SaveChanges(_G.CompactUnitFrameProfiles)
 
+  _G.CompactRaidFrameManager.dynamicContainerPosition = false
   _G.CompactRaidFrameManagerContainerResizeFrame:ClearAllPoints()
-  _G.CompactRaidFrameManagerContainerResizeFrame:SetPoint("TOPLEFT", nil, "TOPLEFT", 463 , -650)
+  _G.CompactRaidFrameManagerContainerResizeFrame:SetPoint("TOPLEFT", "NKParty1Frame", "TOPLEFT", -4, 7)
+  _G.CompactRaidFrameManagerContainerResizeFrame:SetHeight(410) -- The minimum height for 10 frames per column.  I don't
+                                                                -- know why.  Doesn't matter.
+  _G.CompactRaidFrameManager_ResizeFrame_UpdateContainerSize(_G.CompactRaidFrameManager)
+  --[[_G.CompactRaidFrameManager_ResizeFrame_CheckMagnetism(_G.CompactRaidFrameManager)]] -- No.
   _G.CompactRaidFrameManager_ResizeFrame_SavePosition(_G.CompactRaidFrameManager)
 
   -- wowprogramming.com/utils/xmlbrowser/test/AddOns/Blizzard_CUFProfiles/Blizzard_CompactUnitFrameProfiles.xml
   -- wowprogramming.com/utils/xmlbrowser/test/AddOns/Blizzard_CUFProfiles/Blizzard_CompactUnitFrameProfiles.lua
   -- wowprogramming.com/docs/api_categories#raid
 end
+
+-- This is the ancient raid panel accessible from the "Social" window (wow.gamepedia.com/Raid_list, apparently
+-- _G.FriendsFrame).  It existed before Warcraft's default UI included its current raid frames (which were added in
+-- Vanilla, I think).  The code to create the raid frames one could get by dragging group labels or names is actually
+-- still there; only some key function calls are commented out.  I guess we don't have to do anything here.
+setupFunctions["Blizzard_RaidUI"] = nil
+-- wowprogramming.com/utils/xmlbrowser/test/AddOns/Blizzard_RaidUI/Blizzard_RaidUI.toc
+-- wowprogramming.com/utils/xmlbrowser/test/AddOns/Blizzard_RaidUI/Blizzard_RaidUI.xml
+-- wowprogramming.com/utils/xmlbrowser/test/AddOns/Blizzard_RaidUI/Blizzard_RaidUI.lua
 
 setupFunctions["OmniCC"] = function()
    _G.assert(_G.OmniCC4Config and OmniCC4Config)
@@ -374,7 +393,7 @@ OmniCC4Config = {
 			["fontOutline"] = "OUTLINE",
 			["minSize"] = 0,
 			["minEffectDuration"] = 0,
-			["yOff"] = 1,
+			["yOff"] = 2,
 			["fontSize"] = 14,
 			["styles"] = {
 				["minutes"] = {
@@ -430,7 +449,7 @@ OmniCC4Config = {
 			["fontOutline"] = "OUTLINE",
 			["minSize"] = 0,
 			["minEffectDuration"] = 0,
-			["yOff"] = 2,
+			["yOff"] = 1.875, -- 2 * 30 / 32
 			["fontSize"] = 14,
 			["styles"] = {
 				["minutes"] = {
