@@ -75,6 +75,8 @@ end
 setupFunctions = {}
 
 function configureAddon(addon)
+  if not setupFunctions[addon] then return end
+
   local enabled = _G.GetAddOnEnableState(_G.UnitName("player"), addon) > 0
   if not enabled then
     enabled = enableAddon(addon)
@@ -397,35 +399,35 @@ OmniCC4Config = {
 			["fontSize"] = 14,
 			["styles"] = {
 				["minutes"] = {
-					["scale"] = 1.25,
+					["scale"] = 1.125, -- 36 / 32
 					["r"] = 1,
 					["g"] = 1,
 					["b"] = 1,
 					["a"] = 0,
 				},
 				["soon"] = {
-					["scale"] = 1.25,
+					["scale"] = 1.125,
 					["r"] = 1,
 					["g"] = 1,
 					["b"] = 1,
 					["a"] = 1,
 				},
 				["hours"] = {
-					["scale"] = 1.25,
+					["scale"] = 1.125,
 					["r"] = 1,
 					["g"] = 1,
 					["b"] = 1,
 					["a"] = 0,
 				},
 				["charging"] = {
-					["scale"] = 1.25,
+					["scale"] = 1.125,
 					["r"] = 1,
 					["g"] = 1,
 					["b"] = 1,
 					["a"] = 0,
 				},
 				["seconds"] = {
-					["scale"] = 1.25,
+					["scale"] = 1.125,
 					["r"] = 1,
 					["g"] = 1,
 					["b"] = 1,

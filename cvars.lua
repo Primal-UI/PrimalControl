@@ -117,6 +117,7 @@ cVars = {
 
   ----------------------------------------------------------------------------------------------------------------------
   -- Account-wide CVars; these appear in WTF/Account/<AccountName>/config-cache.wtf ------------------------------------
+  nameplateMotion = "1",
   deselectOnClick = "1",
   autoDismountFlying = "1",
   interactOnLeftClick = "0",

@@ -14,11 +14,9 @@ addon._G = _G
 _G[addonName] = addon
 setfenv(1, addon)
 
-----[[
 print = function(...)
   _G.print("|cffff7d0a" .. addonName .. "|r:", ...)
 end
---]]
 
 local AceGUI = _G.LibStub("AceGUI-3.0")
 
